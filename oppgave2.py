@@ -87,20 +87,26 @@ class RungeKuttaFehlberg54:
 
 
 def F(Y):
-    M = np.array([[0.49119653, 0.32513304, 0.98057799],
-                  [0.20768544, 0.97699416, 0.18220559],
-                  [0.96407071, 0.18373237, 0.95307793]]);
-    res = np.ones(4);
-    res[1:4] = M.dot(Y[1:4]);
+
+    #M = np.array([[0.49119653, 0.32513304, 0.98057799],
+                 # [0.20768544, 0.97699416, 0.18220559],
+                  #[0.96407071, 0.18373237, 0.95307793]]);
+    res = np.zeros(3);
+    res[0] = 1;
+    res[1] = Y[1] + Y[2];
+    res[2] = -Y[1] + Y[2];
+
+
+    #res[1:4] = M.dot(Y[1:4]);
     return res;
 
 
 def main():
-    W = np.array([0, 1, 1, 1]);
-    h = 0.1;
+    W = np.array([0, 1, 0]);
+    h = 0.25;
     tol = 05e-14;
-    tEnd = 2.0;
-    rkf54 = RungeKuttaFehlberg54(F, 4, h, tol)
+    tEnd = 1.0;
+    rkf54 = RungeKuttaFehlberg54(F, 3, h, tol)
 
     while (W[0] < tEnd):
         W, E = rkf54.safeStep(W);
