@@ -74,7 +74,7 @@ class RungeKuttaFehlberg54:
 
     def adjustStep(self, E):
         if (E == 0):
-            s = 2;
+            s = 2
         else:
             s = m.pow(self.tol * self.h / (2 * E), 0.25)
         self.h = s * self.h
@@ -89,17 +89,19 @@ class RungeKuttaFehlberg54:
 # Her skriver du inn initialverdiproblemet
 def F(Y):
     res = np.zeros(3)
+
     res[0] = 1
     res[1] = Y[1] + Y[2]
     res[2] = -Y[1] + Y[2]
+
     return res
 
 
 def main():
     W = np.array([0, 1, 0])
-    h = 0.25
+    h = 1.0/30
     tol = 05e-14
-    tEnd = 1.0
+    tEnd = 1
     rkf54 = RungeKuttaFehlberg54(F, 3, h, tol)
 
     while W[0] < tEnd:

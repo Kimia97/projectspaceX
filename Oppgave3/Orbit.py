@@ -1,9 +1,7 @@
 from numpy import sqrt
+from Oppgave2 import oppgave2 as rk45
 import time
-
 import numpy as np
-import scipy.integrate as integrate
-
 import matplotlib.pyplot as plot
 import matplotlib.animation as animation
 
@@ -12,7 +10,7 @@ class Orbit:
     """
     Orbit Class
 
-    init_state is [t0,x0,vx0,y0,vx0],
+    init_state is [t0,x0,vx0,y0,vy0],
     where (x0,y0) is the initial position
     , (vx0,vy0) is the initial velocity
     and t0 is the initial time
@@ -26,6 +24,7 @@ class Orbit:
         self.m_moon = m_earth * 0.012    # Månens masse er 7.3477 * 10^22 Kg, 0.012 x Jordens
         self.state = np.asarray(init_state, dtype='float')
         self.orbit_time = 0.0
+        self.xy = [[0], [10]]
     
     def position(self):
         """compute the current x,y positions of the pendulum arms"""
@@ -55,17 +54,17 @@ class Orbit:
         return [self.state[1], self.state[3]]
 
     def get_orbit_time(self, start_state_y):
-        if round(self.state[3], 4) + 0.0002 >= start_state_y:
-            self.orbit_time = self.time_elapsed()
+        if round(self.state[3], 4) + 0.0001 >= start_state_y:
+            self.orbit_time = self.time_elapsed() - self.orbit_time
 
         return self.orbit_time
 
     def step(self, h):
-        """Uses the trapes method to calculate the new state after h seconds."""
+        """Uses the trapezoid method to calculate the new state after h seconds."""
         x = self.state
         s1 = self.ydot(x)
-        s2 = self.ydot(x+h*s1)
-        self.state = x+h*(s1+s2)/2
+        s2 = self.ydot(x + h * s1)
+        self.state = x + h * (s1 + s2) / 2
     
     def ydot(self, x):
         G = self.GravConst
@@ -86,50 +85,59 @@ class Orbit:
         z[3] = vy1
         z[4] = (Gm2*(py2-py1))/(dist**3)
 
+        self.xy[0].append(self.get_position()[0])
+        self.xy[1].append(self.get_position()[1])
+
         return z
 
 
 # make an Orbit instance
-
 orbit = Orbit([0.0, 0.0, 2, 10, 0.0])
+
 dt = 1./30  # 30 frames per second
+
+# Use runge-kutta 4/5
+rk45 = rk45.RungeKuttaFehlberg54(orbit.ydot, 5, dt, 05e-14)
 
 # The figure is set
 fig = plot.figure()
 axes = fig.add_subplot(111, aspect='equal', autoscale_on=False, xlim=(-12, 12), ylim=(-12, 12))
 
-line1, = axes.plot([], [], 'o-r', linewidth=10, markersize=4)  # Dette er månen
-line2, = axes.plot([], [], 'o-b', linewidth=10, markersize=16)  # Dette er jorden
+line1, = axes.plot([], [], 'ro', linewidth=1, markersize=10)  # Dette er månen
+line1_2, = axes.plot([], [], 'r--', linewidth=1, markersize=10)  # Dette er linjen som viser hvor månen har vært
+line2, = axes.plot([], [], 'bo', linewidth=10, markersize=30)  # Dette er jorden
 
 time_text = axes.text(0.02, 0.95, '', transform=axes.transAxes)
-energy_text = axes.text(0.02, 0.90, '', transform=axes.transAxes)
-velocity_text = axes.text(0.02, 0.85, '', transform=axes.transAxes)
-position_text = axes.text(0.02, 0.80, '', transform=axes.transAxes)
-orbit_time_text = axes.text(0.02, 0.75, '', transform=axes.transAxes)
+velocity_text = axes.text(0.02, 0.90, '', transform=axes.transAxes)
+position_text = axes.text(0.02, 0.85, '', transform=axes.transAxes)
+orbit_time_text = axes.text(0.02, 0.80, '', transform=axes.transAxes)
 
 
 def init():
     """initialize animation"""
+
     line1.set_data([], [])
+    line1_2.set_data([], [])
     line2.set_data([], [])
     time_text.set_text('')
-    energy_text.set_text('')
-    return line1, line2, time_text, energy_text, velocity_text, position_text, orbit_time_text
+    # energy_text.set_text('')
+    return line1, line1_2, line2, time_text, velocity_text, position_text, orbit_time_text
 
 
 def animate(i):
     """perform animation step"""
     global orbit, dt
-    orbit.step(dt)
+    orbit.state, E = rk45.safeStep(orbit.state)
     line1.set_data(*orbit.position())
+    line1_2.set_data(orbit.xy)
     line2.set_data([0.0, 0.0])
     time_text.set_text('time = %.1f' % orbit.time_elapsed())
-    energy_text.set_text('energy = %.3f J' % orbit.energy())
+    # energy_text.set_text('energy = %.3f J' % orbit.energy())
     velocity_text.set_text('velocity = %.3f x' % orbit.get_velocity()[0] + ', %.3f y' % orbit.get_velocity()[1])
     position_text.set_text('x = %.3f ' % orbit.get_position()[0] + ', %.3f y' % orbit.get_position()[1])
     orbit_time_text.set_text('Orbit time  = %.3f dager' % orbit.get_orbit_time(10.0000))
 
-    return line1, line2, time_text, energy_text, velocity_text, position_text, orbit_time_text
+    return line1, line1_2, line2, time_text, velocity_text, position_text, orbit_time_text
 
 
 # choose the interval based on dt and the time to animate one step
@@ -142,7 +150,7 @@ delay = 1000 * dt - (t1 - t0)
 
 anim = animation.FuncAnimation(fig,             # figure to plot in
                                animate,         # function that is called on each frame
-                               frames=1000,      # total number of frames
+                               frames=3600,      # total number of frames
                                interval=delay,  # time to wait between each frame.
                                repeat=False,
                                blit=True,
