@@ -85,7 +85,7 @@ class RungeKuttaFehlberg54:
     def setStepLength(self, stepLength):
         self.h = stepLength;
 
-
+#Her skriver du inn initialverdiproblemet
 def F(Y):
     res = np.zeros(3);
     res[0] = 1;
