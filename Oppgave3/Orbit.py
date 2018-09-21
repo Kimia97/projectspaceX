@@ -7,9 +7,9 @@ import scipy.integrate as integrate
 import matplotlib.pyplot as plot
 import matplotlib.animation as animation
 
+
 class Orbit:
     """
-    
     Orbit Class
 
     init_state is [t0,x0,vx0,y0,vx0],
@@ -19,13 +19,13 @@ class Orbit:
     """
     def __init__(self,
                  init_state=[0, 0, 1, 2, 0],
-                 G=3,
-                 m_earth=5,   # Jordens masse er 5.9736 * 10^24 Kg
-                 m_moon=5):  # Månens masse er 7.3477 * 10^22 Kg
+                 G=8.25,
+                 m_earth=5):
         self.GravConst = G
-        self.m_earth = m_earth
-        self.m_moon = m_moon
+        self.m_earth = m_earth  # Jordens masse er 5.9736 * 10^24 Kg
+        self.m_moon = m_earth * 0.012    # Månens masse er 7.3477 * 10^22 Kg, 0.012 x Jordens
         self.state = np.asarray(init_state, dtype='float')
+        self.orbit_time = 0.0
     
     def position(self):
         """compute the current x,y positions of the pendulum arms"""
@@ -54,6 +54,11 @@ class Orbit:
     def get_position(self):
         return [self.state[1], self.state[3]]
 
+    def get_orbit_time(self, start_state_y):
+        if round(self.state[3], 4) + 0.0002 >= start_state_y:
+            self.orbit_time = self.time_elapsed()
+
+        return self.orbit_time
 
     def step(self, h):
         """Uses the trapes method to calculate the new state after h seconds."""
@@ -86,7 +91,7 @@ class Orbit:
 
 # make an Orbit instance
 
-orbit = Orbit([0.0, 0.0, 1.2, 10, 0.0])
+orbit = Orbit([0.0, 0.0, 2, 10, 0.0])
 dt = 1./30  # 30 frames per second
 
 # The figure is set
@@ -100,7 +105,7 @@ time_text = axes.text(0.02, 0.95, '', transform=axes.transAxes)
 energy_text = axes.text(0.02, 0.90, '', transform=axes.transAxes)
 velocity_text = axes.text(0.02, 0.85, '', transform=axes.transAxes)
 position_text = axes.text(0.02, 0.80, '', transform=axes.transAxes)
-
+orbit_time_text = axes.text(0.02, 0.75, '', transform=axes.transAxes)
 
 
 def init():
@@ -109,7 +114,7 @@ def init():
     line2.set_data([], [])
     time_text.set_text('')
     energy_text.set_text('')
-    return line1, line2, time_text, energy_text, velocity_text, position_text
+    return line1, line2, time_text, energy_text, velocity_text, position_text, orbit_time_text
 
 
 def animate(i):
@@ -120,10 +125,11 @@ def animate(i):
     line2.set_data([0.0, 0.0])
     time_text.set_text('time = %.1f' % orbit.time_elapsed())
     energy_text.set_text('energy = %.3f J' % orbit.energy())
-    velocity_text.set_text('velocity = %.3f x' % orbit.get_velocity()[0]+ ', %.3f y' % orbit.get_velocity()[1])
-    position_text.set_text('x = %.3f ' % orbit.get_position()[0]+ ', %.3f y' % orbit.get_position()[1])
+    velocity_text.set_text('velocity = %.3f x' % orbit.get_velocity()[0] + ', %.3f y' % orbit.get_velocity()[1])
+    position_text.set_text('x = %.3f ' % orbit.get_position()[0] + ', %.3f y' % orbit.get_position()[1])
+    orbit_time_text.set_text('Orbit time  = %.3f dager' % orbit.get_orbit_time(10.0000))
 
-    return line1, line2, time_text, energy_text, velocity_text, position_text
+    return line1, line2, time_text, energy_text, velocity_text, position_text, orbit_time_text
 
 
 # choose the interval based on dt and the time to animate one step
@@ -136,7 +142,7 @@ delay = 1000 * dt - (t1 - t0)
 
 anim = animation.FuncAnimation(fig,             # figure to plot in
                                animate,         # function that is called on each frame
-                               frames=6000,      # total number of frames
+                               frames=1000,      # total number of frames
                                interval=delay,  # time to wait between each frame.
                                repeat=False,
                                blit=True,
