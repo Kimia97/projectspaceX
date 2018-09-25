@@ -9,9 +9,13 @@ Created on Thu Aug 30 20:26:05 2018
 import numpy as np
 import math as m
 import sys
+import time
 
+lokalfeil = 0
 
 class RungeKuttaFehlberg54:
+    lokalfeil =0
+
     A = np.array(
         [[0, 0, 0, 0, 0, 0],
          [1 / 4, 0, 0, 0, 0, 0],
@@ -38,35 +42,33 @@ class RungeKuttaFehlberg54:
         s = np.zeros((6, self.dim))
 
         for i in range(0, 6):
-            s[i, :] = self.F(Win + self.h * self.A[i, 0:i].dot(s[0:i, :]))
+            s[i, :] = self.F(Win + self.h * self.A[i, 0:i].dot(s[0:i, :])) #Hva skjer her?
 
-        Zout = Win + self.h * (self.B[0, :].dot(s))
+        Zout = Win + self.h * (self.B[0, :].dot(s)) #Sjekk steg for orden 5
         Wout = Win + self.h * (self.B[1, :].dot(s))
 
-        E = np.linalg.norm(Wout - Zout, 2) / np.linalg.norm(Wout, 2)
+        E = np.linalg.norm(Wout - Zout, 2) / np.linalg.norm(Wout, 2) #Feilestimat
         return Wout, E
 
     def safeStep(self, Win):
         Wout, E = self.step(Win)
         # Check if the error is tolerable
 
-        if (not self.isErrorTolerated(E)):
-            # Try to adjust the optimal step length
-            self.adjustStep(E)
-            Wout, E = self.step(Win)
-        # If the error is still not tolerable
+        if (not self.isErrorTolerated(E)): #Dersom feilen er høyere enn toleransen fra bruker
+            self.adjustStep(E)  #Endre trinnstørrelse for å bli optimal
+            Wout, E = self.step(Win) #gjenta steg
+        # hvis steget fortsatt ikke er innenfor toleransen
         counter = 0
 
-        while not self.isErrorTolerated(E):
-            # Try if dividing the steplength with 2 helps.
-            self.divideStepByTwo()
+        while not self.isErrorTolerated(E): #Når feilen er over toleransen
+            self.divideStepByTwo() #Dele steg på to
             Wout, E = self.step(Win)
             counter = counter + 1
             if counter > 10:
                 sys.exit(-1)
 
-        self.adjustStep(E)
-
+        self.adjustStep(E) #Endre stegstørrelse igjen
+        self.lokalfeil += E
         return Wout, E
 
     def isErrorTolerated(self, E):
@@ -91,17 +93,32 @@ def F(Y):
     res = np.zeros(3)
 
     res[0] = 1
-    res[1] = Y[1] + Y[2]
-    res[2] = -Y[1] + Y[2]
-
+    res[1] = -Y[1] - Y[2]
+    res[2] = Y[1] - Y[2]
     return res
 
+def finn_best_tol(F, dim, h, tEnd, W, ant_tester):
+    tol = 05e-14
+
+    for i in range(0, ant_tester):
+        rkf45 = RungeKuttaFehlberg54(F,dim, h, tol)
+        start_time = time.perf_counter()
+        while W[0] < tEnd:
+            W, E = rkf45.safeStep(W)
+        rkf45.setStepLength(tEnd - W[0])
+        W, E = rkf45.step(W)
+        print(W, E)
+        print(i, "Toleranse: ", tol, " Tid: ", time.perf_counter() - start_time, " sekunder")
+        tol = tol/2
+
+def global_feil(w_1, y_1):
+    return abs(w_1 - y_1)
 
 def main():
     W = np.array([0, 1, 0])
-    h = 1.0/30
+    h = 0.25
     tol = 05e-14
-    tEnd = 1
+    tEnd = 1.0
     rkf54 = RungeKuttaFehlberg54(F, 3, h, tol)
 
     while W[0] < tEnd:
@@ -111,6 +128,21 @@ def main():
     W, E = rkf54.step(W)
 
     print(W, E)
+    y_1 = (m.e**(-1))*m.cos(1)
+    y_2 = (m.e**(-1))*m.sin(1)
+    print("Y_1: ", y_1)
+    print("W_1: ", W[1])
+    print("Y_2: ", y_2)
+    print("W_2 ", W[2])
+
+    globalfeil = global_feil(W[1], y_1)
+    globalfeil2 = global_feil(W[2], y_2)
+    print("Globalfeil1: ", globalfeil)
+    print("Globalfeil2: ", globalfeil2)
+    print("Lokalfeil: ", rkf54.lokalfeil)
+
+    ant_tester = 50
+    finn_best_tol(F, 3, 1/30, 1, W, ant_tester)
 
 
 if __name__ == "__main__":
