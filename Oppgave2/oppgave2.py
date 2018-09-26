@@ -10,6 +10,7 @@ import numpy as np
 import math as m
 import sys
 import time
+import matplotlib.pyplot as plot
 
 lokalfeil = 0
 
@@ -78,7 +79,7 @@ class RungeKuttaFehlberg54:
         if (E == 0):
             s = 2
         else:
-            s = m.pow(self.tol * self.h / (2 * E), 0.25)
+            s = m.pow(self.tol * self.h / (2 * E), 0.25) #Pass på at E ikke blir null, kan bli feil her
         self.h = s * self.h
 
     def divideStepByTwo(self):
@@ -91,7 +92,6 @@ class RungeKuttaFehlberg54:
 # Her skriver du inn initialverdiproblemet
 def F(Y):
     res = np.zeros(3)
-
     res[0] = 1
     res[1] = -Y[1] - Y[2]
     res[2] = Y[1] - Y[2]
@@ -99,6 +99,8 @@ def F(Y):
 
 def finn_best_tol(F, dim, h, tEnd, W, ant_tester):
     tol = 05e-14
+    modber = np.zeros(ant_tester)
+    toleranser = np.zeros(ant_tester)
 
     for i in range(0, ant_tester):
         rkf45 = RungeKuttaFehlberg54(F,dim, h, tol)
@@ -107,9 +109,19 @@ def finn_best_tol(F, dim, h, tEnd, W, ant_tester):
             W, E = rkf45.safeStep(W)
         rkf45.setStepLength(tEnd - W[0])
         W, E = rkf45.step(W)
-        print(W, E)
-        print(i, "Toleranse: ", tol, " Tid: ", time.perf_counter() - start_time, " sekunder")
+        stop_time = time.perf_counter()
+        bertid = stop_time - start_time
+        modber[i] = h/bertid
+        #print(i, "Toleranse: ", tol, " Tid: ", tid, " sekunder")
+        toleranser[i] = tol
         tol = tol/2
+
+    plot.loglog(toleranser, modber)
+    plot.xlabel("Toleranse")
+    plot.ylabel("Modeltid/beregningstid")
+    plot.title("Funksjon av toleranse")
+    plot.grid(True)
+    plot.show()
 
 def global_feil(w_1, y_1):
     return abs(w_1 - y_1)
@@ -141,7 +153,7 @@ def main():
     print("Globalfeil2: ", globalfeil2)
     print("Lokalfeil: ", rkf54.lokalfeil)
 
-    ant_tester = 50
+    ant_tester = 40
     finn_best_tol(F, 3, 1/30, 1, W, ant_tester)
 
 
