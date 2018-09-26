@@ -103,18 +103,20 @@ def finn_best_tol(F, dim, h, tEnd, W, ant_tester):
     toleranser = np.zeros(ant_tester)
 
     for i in range(0, ant_tester):
+        W = np.array([0, 1, 0])
         rkf45 = RungeKuttaFehlberg54(F,dim, h, tol)
-        start_time = time.perf_counter()
+        start_time = time.time()
         while W[0] < tEnd:
             W, E = rkf45.safeStep(W)
         rkf45.setStepLength(tEnd - W[0])
         W, E = rkf45.step(W)
-        stop_time = time.perf_counter()
+        stop_time = time.time()
         bertid = stop_time - start_time
-        modber[i] = h/bertid
+        print("Tid" , bertid)
+        modber[i] = tEnd/bertid
         #print(i, "Toleranse: ", tol, " Tid: ", tid, " sekunder")
         toleranser[i] = tol
-        tol = tol/2
+        tol = tol*2
 
     plot.loglog(toleranser, modber)
     plot.xlabel("Toleranse")
@@ -153,8 +155,8 @@ def main():
     print("Globalfeil2: ", globalfeil2)
     print("Lokalfeil: ", rkf54.lokalfeil)
 
-    ant_tester = 40
-    finn_best_tol(F, 3, 1/30, 1, W, ant_tester)
+    ant_tester = 10
+    finn_best_tol(F, 3, 1/30, 10, W, ant_tester)
 
 
 if __name__ == "__main__":
