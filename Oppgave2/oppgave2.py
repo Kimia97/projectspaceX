@@ -112,8 +112,8 @@ def finn_best_tol(F, dim, h, tEnd, W, ant_tester):
         W, E = rkf45.step(W)
         stop_time = time.time()
 
-        print('start:', start_time)
-        print('stop:', stop_time)
+        #print('start:', start_time)
+        #print('stop:', stop_time)
 
         bertid = stop_time - start_time
         print("Tid" , bertid)
@@ -160,7 +160,7 @@ def main():
     print("Lokalfeil: ", rkf54.lokalfeil)
 
     ant_tester = 10
-    finn_best_tol(F, 3, 1/30, 500, W, ant_tester)
+    finn_best_tol(F, 3, 1/30, 10000, W, ant_tester)
 
 
 if __name__ == "__main__":
