@@ -61,7 +61,6 @@ class Orbit:
         return self.orbit_time
 
     def step(self, h):
-        """Uses the trapezoid method to calculate the new state after h seconds."""
         x = self.state
         s1 = self.ydot(x)
         s2 = self.ydot(x + h * s1)
