@@ -114,7 +114,7 @@ def finn_best_tol(F, dim, h, tEnd, W, ant_tester):
         bertid = stop_time - start_time
         print("Tid" , bertid)
         modber[i] = tEnd/bertid
-        #print(i, "Toleranse: ", tol, " Tid: ", tid, " sekunder")
+        # print(i, "Toleranse: ", tol, " Tid: ", tid, " sekunder")
         toleranser[i] = tol
         tol = tol*2
 
