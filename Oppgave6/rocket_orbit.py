@@ -207,7 +207,7 @@ delay = (1000 * dt - (t1-t0)) * 0
 
 anim = animation.FuncAnimation(fig,  # figure to plot in
                                animate,  # function that is called on each frame
-                               frames=3000,  # total number of frames
+                               frames=300000,  # total number of frames
                                interval=delay,  # time to wait between each frame.
                                repeat=False,
                                blit=True,
@@ -219,7 +219,7 @@ anim = animation.FuncAnimation(fig,  # figure to plot in
 # the video can be embedded in html5.  You may need to adjust this for
 # your system: for more information, see
 # http://matplotlib.sourceforge.net/api/animation_api.html
-anim.save('orbit.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
+# anim.save('orbit.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
 plot.show()
 
 print('DONE')
