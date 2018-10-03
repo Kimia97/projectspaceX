@@ -38,6 +38,7 @@ class RungeKuttaFehlberg54:
         self.dim = dimension
         self.h = stepsize
         self.tol = tolerance
+        self.original_h = stepsize
 
     def step(self, Win):
         s = np.zeros((6, self.dim))
@@ -80,13 +81,18 @@ class RungeKuttaFehlberg54:
             s = 2
         else:
             s = m.pow(self.tol * self.h / (2 * E), 0.25) #Pass på at E ikke blir null, kan bli feil her
+
         self.h = s * self.h
+        if self.h > self.original_h:
+            self.h = self.original_h
+
 
     def divideStepByTwo(self):
         self.h = self.h / 2
 
     def setStepLength(self, stepLength):
         self.h = stepLength
+
 
 
 # Her skriver du inn initialverdiproblemet

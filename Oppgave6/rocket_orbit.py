@@ -1,5 +1,6 @@
 from numpy import sqrt
 from Oppgave2 import oppgave2 as rk45
+from Oppgave6 import orbit_rocket_thrusters as ort
 from Oppgave4 import rocket
 from Oppgave5 import atmosphere
 import time
@@ -29,6 +30,7 @@ class Orbit:
         self.xy = [[0], [6371e3]]
         self.last_time = -1
         self.acceleration = 0
+        self.rocket_angle = 0
 
     def position(self):
         """compute the current x,y positions of the pendulum arms"""
@@ -44,8 +46,14 @@ class Orbit:
 
         return distance_from_earth_center - earth_radius
 
+    def get_angle(self):
+        return 90 + np.rad2deg(np.arctan(self.state[1]/self.state[3]))
+
     def time_elapsed(self):
         return self.state[0]
+
+    def get_abs_vel(self):
+        return np.sqrt(self.state[2]**2 + self.state[4]**2)
 
     def get_velocity(self):
         return [self.state[2], self.state[4]]
@@ -81,20 +89,56 @@ class Orbit:
         Fg_x = (Gm2 * (px2 - px1)) / (dist ** 3)
         Fg_y = (Gm2 * (py2 - py1)) / (dist ** 3)
 
+        # Area of the rocket used in the drag calculations
+        a1 = np.pi * 5.55**2
+
+        rocket_mass = ort.get_rocket_mass(t)
+
+        # Used to calculate the angle of the speed relative to starting angle
+        if vy1 == 0 or vx1 == 0:
+            speed_angle = 0
+        elif vy1 < 0 and vx1 >= 0:
+            speed_angle = np.pi + np.arctan(vx1 / vy1)
+        elif vy1 < 0 and vx1 <=0:
+            speed_angle = np.pi/2 + np.arctan(vx1 / vy1)
+        elif vy1 > 0 and vx1 <= 0:
+            speed_angle = np.pi + np.arctan(vx1 / vy1)
+        elif vy1 > 0 and vx1 >= 0:
+            speed_angle = 0 + np.arctan(vx1 / vy1)
+
+        # After 130 seconds increase angle until speed is 90 degrees from starting angle
+        if t > 130:
+            if np.rad2deg(speed_angle) >= 90:
+                self.rocket_angle = self.get_angle()
+            elif round(t) != self.last_time and round(t) > self.last_time:
+                self.rocket_angle += 3
+                self.last_time = round(t)
+
+
+        # Force from thrusters on rocket divided by rocket
+        F = ort.get_rocket_thrust(t, self.rocket_angle)
+        Fx, Fy = F[0], F[1]
+
+        # Switch off rocket thrusters after 175 seconds
+        if t >= 175:
+            rocket_mass = ort.get_rocket_mass(175)
+            Fx, Fy = 0, 0
+
+
         # Force from air drag on rocket divided by rocket mass
-        absolute_velocity = sqrt(vx1*vx1 + vy1*vy1)
-        Fd = atmosphere.get_air_drag(self.distance_above_sea_level(), 1/2, 50, absolute_velocity)/rocket.get_rocket_mass(t)
+        abs_vel = np.sqrt(vx1**2 + vy1**2)
+        Fd = atmosphere.get_air_drag(self.distance_above_sea_level(), 0.2, a1, abs_vel)/rocket_mass
+        Fd_x = np.sin(speed_angle) * Fd
+        Fd_y = np.cos(speed_angle) * Fd
 
-        # Force from thrusters on rocket divided by rocket mass
-        F = rocket.get_rocket_thrust(t)
 
-        self.acceleration = F/rocket.get_rocket_mass(t) - (Fg_y + Fd)
+        self.acceleration = Fy/rocket_mass - (Fg_y + Fd_y)
 
         z[0] = 1
         z[1] = vx1
-        z[2] = Fg_x
+        z[2] = Fx/rocket_mass + (Fg_x - Fd_x)
         z[3] = vy1
-        z[4] = F/rocket.get_rocket_mass(t) - (Fg_y + Fd)
+        z[4] = Fy/rocket_mass + (Fg_y - Fd_y)
 
         self.xy[0].append(self.get_position()[0])
         self.xy[1].append(self.get_position()[1])
@@ -104,12 +148,10 @@ class Orbit:
 
 # make an Orbit instance
 orbit = Orbit([0.0, 0.0, 0, 6371e3, 0.0])
-plotScale = 7000e3 # meters
 
-dt = 1.0 / 360 #  1 frames per second
-animation_time = 0
-time_0 = 0
-time_difference = 0
+plotScale = 10e6  # meters
+
+dt = 60
 
 # Use runge-kutta 4/5
 rk45 = rk45.RungeKuttaFehlberg54(orbit.ydot, 5, dt, 05e-14)
@@ -128,7 +170,7 @@ line1_2, = axes.plot([], [], 'r--', linewidth=0.5)  # Dette er linjen som viser 
 time_text = axes.text(0.02, 0.95, '', transform=axes.transAxes)
 velocity_text = axes.text(0.02, 0.90, '', transform=axes.transAxes)
 position_text = axes.text(0.02, 0.85, '', transform=axes.transAxes)
-acceleration_text = axes.text(0.02, 0.80, '', transform=axes.transAxes)
+height_text = axes.text(0.02, 0.80, '', transform=axes.transAxes)
 
 
 def init():
@@ -138,29 +180,21 @@ def init():
     #line2.set_data([], [])
     time_text.set_text('')
     # energy_text.set_text('')
-    return line1, line1_2, time_text, velocity_text, position_text, acceleration_text
+    return line1, line1_2, time_text, velocity_text, position_text, height_text
 
 
 def animate(i):
     """perform animation step"""
     global orbit, dt, time_0, time_difference
-    t0 = time_0
-    t1 = orbit.state[0]
-    time_0 = t1
-    time_difference = t1 - t0
-    time_to_sleep = time_difference / dt - 1
-    print(time_difference / dt)
-    #if time_to_sleep > 0:
-    #    time.sleep(time_to_sleep * dt)
 
     orbit.state, E = rk45.safeStep(orbit.state)
     line1.set_data(*orbit.position())
     line1_2.set_data(orbit.xy)
     time_text.set_text('time = %.f sek' % orbit.time_elapsed())
-    velocity_text.set_text('velocity = %.3f x km/s' % (orbit.get_velocity()[0]/1e3) + ', %.3f y km/s' % (orbit.get_velocity()[1]/1e3))
-    acceleration_text.set_text('Acceleration = %.3f m/s^2' % orbit.get_acceleration())
+    velocity_text.set_text('velocity = %.3f x km/s' % (orbit.get_abs_vel()/1e3))
+    height_text.set_text('moh. = %.3f km' % (orbit.distance_above_sea_level() / 1e3))
     position_text.set_text('x = %.3f km' % (orbit.get_position()[0]) + ', y = %.3f km' % ((orbit.get_position()[1] - 6371e3)/1e3))
-    return line1, line1_2, time_text, velocity_text, position_text, acceleration_text
+    return line1, line1_2, time_text, velocity_text, position_text, height_text
 
 
 # choose the interval based on dt and the time to animate one step
@@ -169,11 +203,11 @@ t0 = time.time()
 animate(0)
 t1 = time.time()
 
-delay = 1000 * dt - (animation_time)
+delay = (1000 * dt - (t1-t0)) * 0
 
 anim = animation.FuncAnimation(fig,  # figure to plot in
                                animate,  # function that is called on each frame
-                               frames=30000,  # total number of frames
+                               frames=3000,  # total number of frames
                                interval=delay,  # time to wait between each frame.
                                repeat=False,
                                blit=True,
@@ -185,8 +219,7 @@ anim = animation.FuncAnimation(fig,  # figure to plot in
 # the video can be embedded in html5.  You may need to adjust this for
 # your system: for more information, see
 # http://matplotlib.sourceforge.net/api/animation_api.html
-# anim.save('orbit.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
-
+anim.save('orbit.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
 plot.show()
 
 print('DONE')

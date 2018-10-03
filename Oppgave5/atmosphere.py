@@ -2,6 +2,9 @@ import numpy as np
 
 
 def get_air_drag(h, Cd, A, v):
+    if h < 0:
+        return 0
+
     return 1/2 * Cd * get_air_resistance(h) * A * v**2
 
 

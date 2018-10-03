@@ -1,3 +1,5 @@
+import numpy as np
+
 
 def get_rocket_mass(t):
     m1 = 2970000  # kg
@@ -17,16 +19,24 @@ def get_rocket_mass(t):
     else:
         return m3 - (165 + 335) * dtm3
 
-def get_rocket_thrust(t):
+
+# Angle from a stick going straight trough the top of the earth
+def get_rocket_thrust(t, angle):
     thrust1 = 35100 * 10e3  # N
     thrust2 = 5141 * 10e3   # N
     thrust3 = 1000 * 10e3   # N
 
     if t <= 168:
-        return thrust1
+        Fy = thrust1 * np.cos(np.deg2rad(angle))
+        Fx = thrust1 * np.sin(np.deg2rad(angle))
+        return [Fx, Fy]
     elif 160 < t <= 360:
-        return thrust2
+        Fy = thrust2 * np.cos(np.deg2rad(angle))
+        Fx = thrust2 * np.sin(np.deg2rad(angle))
+        return [Fx, Fy]
     elif 360 < t <= 165 + 335:
-        return thrust3
+        Fy = thrust3 * np.cos(np.deg2rad(angle))
+        Fx = thrust3 * np.sin(np.deg2rad(angle))
+        return [Fx, Fy]
     else:
-        return 0
+        return [0, 0]
